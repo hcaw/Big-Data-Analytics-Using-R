@@ -1,0 +1,286 @@
+---
+title: "Coursework_2"
+author: "Harry Wright"
+date: "12 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####1. Logistic Regression
+
+**This question should be answered using the `Weekly` data set, which is part of the `ISLR` package. This data is similar in nature to the `Smarket` data from this chapter’s lab, except that it contains 1,089 weekly returns for 21 years, from the beginning of 1990 to the end of 2010.**
+
+**a) Produce some numerical and graphical summaries of the Weekly data. Do there appear to be any patters?**
+
+```{r}
+library(ISLR)
+summary(Weekly)
+```
+
+```{r}
+cor(Weekly[,1:8])
+```
+
+```{r}
+pairs(Weekly)
+```
+
+There is a strong correlation between Year and Volume, it is a positive correlation.
+
+All other correlations are close to zero.
+
+**b) Use the full data set to perform a logistic regression with Direction as the response and the five lag variables plus Volume as predictors. Use the summary function to print the results. Do any of the predictors appear to be statistically significant? If so, which ones?**
+
+```{r}
+glm.fit.multi<-glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,data=Weekly,family=binomial)
+summary(glm.fit.multi)
+```
+
+Lag2 is the only independent variable that appears to be statistically significant, with a p value at around 0.03. All other independent variables have a large p value, so are unlikely to affect the outcome.
+
+**c) Compute the confusion matrix and overall fraction of correct predictions. Explain what the confusion matrix is telling you about the types of mistakes made by logistic regression.**
+
+```{r}
+glm.probs<-predict(glm.fit.multi,type="response")
+glm.pred<-rep("Down",1089)
+glm.pred[glm.probs>.5]<-"Up"
+table(glm.pred,Weekly$Direction)
+```
+
+We can use the above results to calculate the overall fraction of correct predictions:
+
+```{r}
+(54+557)/1089
+```
+
+Therefore the percentage of correct predictions is 56.1%, which is pretty low.
+
+It is interesting to observe that in weeks when the Direction goes up, the prediction is correct `(557/(48+557))` = 92% of the time. However, in weeks when the Direction goes down, we are only correct `(54/(54+430))` = 11.1% of the time.
+
+This is telling us that the model is predicting UP most of the time, and is therefore a bad model.
+
+####2. Logistic Regression
+
+**In this problem, you will develop a model to predict whether a given car gets high or low gas mileage based on the `Auto` data set.**
+
+**a) Create a binary variable, `mpg01`, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median. You can compute the median using the median() function. Note you may find it helpful to use the data.frame() function to create a single data set containing both `mpg01` and the other Auto variables.**
+
+```{r}
+attach(Auto)
+mpg01<-rep(0,nrow(Auto))
+mpg01[mpg > median(mpg)]<-1
+Auto<-data.frame(Auto,mpg01)
+Auto[20:30,]
+```
+
+**b) Explore the data graphically in order to investigate the association between `mpg01` and the other features. Which of the other features seem most likely to be useful in predicting `mpg01`? Scatterplots and boxplots may be useful tools to answer this question. Describe your findings.**
+
+```{r}
+cor(Auto[,-9])[9,]
+pairs(Auto)
+boxplot(cylinders~mpg01,data=Auto,xlab="mpg01 (1 if mpg > median(mpg), otherwise 0)",ylab= "number of cylinders",col="blue")
+boxplot(displacement~mpg01,data=Auto,xlab="mpg01 (1 if mpg > median(mpg), otherwise 0)",ylab= "displacement",col="orange")
+boxplot(horsepower~mpg01,data=Auto,xlab="mpg01 (1 if mpg > median(mpg), otherwise 0)",ylab= "horspower",col="brown")
+boxplot(acceleration~mpg01,data=Auto,xlab="mpg01 (1 if mpg > median(mpg), otherwise 0)",ylab= "acceleration",col="pink")
+```
+
+We can see from the above that there is a strong negative correlation between (`cylinders`, `displacement`, `horsepower`) and `mpg01`.
+There is a small positive correlation between `Acceleration` and `mpg01`.
+
+####3. Validation Set Approach
+
+**In chapter 4, we used logistic regression to predict the probability of `default` using `income` and `balance` on the `Default` data set. We will now estimate the test error of this logistic regression model using the validation set approach. Do not forget to set a random seed before beginning your analysis.**
+
+**a) Fit a logistic regression model that uses `income` and `balance` to predict `default`.**
+
+```{r}
+set.seed(1)
+glm.fit.multi<-glm(default~income+balance,data=Default,family=binomial)
+summary(glm.fit.multi)
+```
+
+**b) Using the validation set approach, estimate the test error of this model. In order to do this, you must perform the following steps:**
+
+**i) Split the sample set into a training set and a validation set.**
+
+```{r}
+default.rows<-nrow(Default)
+train<-sample(default.rows,default.rows/2)
+```
+
+**ii) Fit a multiple logistic regression model using only the training observations.**
+
+```{r}
+lm.fit.train<-glm(default~income+balance,data=Default,family=binomial,subset=train)
+summary(lm.fit.train)
+```
+
+**iii) Obtain a prediction of default status for each individual in the validation set by computing the posterior probability of default for that individual and classifying the individual to the `default` category if the posterior probability is greater than 0.5.**
+
+```{r}
+glm.probs<-predict(lm.fit.train,type="response",newdata=Default[-train, ])
+glm.pred<-rep("No",default.rows)
+glm.pred[glm.probs>.5]<-"Yes"
+```
+
+**iv) Compute the validation set error which is the fraction of the observations in the validation set that are misclassified.**
+
+```{r}
+mean(glm.pred!=Default[-train,]$default)
+```
+
+We can see above that there is a 2.86% error rate when using the validation approach (in this circumstance)
+
+**c) Repeat the process in (b) three times, using three different splits of the observations into a training set and validation set. Comment on the results obtained.**
+
+```{r}
+for(i in 1:3) {
+  set.seed(i+1)
+  default.rows<-nrow(Default)
+  train<-sample(default.rows,default.rows/2)
+  lm.fit.train<-glm(default~income+balance,data=Default,family=binomial,subset=train)
+  glm.probs<-predict(lm.fit.train,type="response",newdata=Default[-train, ])
+  glm.pred<-rep("No",default.rows)
+  glm.pred[glm.probs>.5]<-"Yes"
+  print(mean(glm.pred!=Default[-train,]$default))
+}
+```
+
+Above we are seeing the disadvantage of the validation set approach - the error rate is highly variable.
+
+**d) Now consider a logistic regression model that predicts the probability of `default` using `income`, `balance` and a dummy variable for `student`. Estimate the test error for this model using the validation set approach. Comment on whether or not including a dummy variable for `student` leads to a reduction in the test error rate.**
+
+```{r}
+set.seed(1)
+train.sample<-sample(default.rows,default.rows/2)
+glm.fit.train<-glm(default~income+balance+student,family=binomial,subset=train.sample,data=Default) 
+glm.pred<-rep("No",default.rows)
+glm.probs<-predict(lm.fit.train,type="response",newdata=Default[-train.sample, ])
+glm.pred[glm.probs>0.5]<-"Yes"
+print(mean(glm.pred!=Default[-train.sample,]$default))
+```
+
+It appears that the inclusion of the student dummy doesn't decrease the error rate by a large amount.
+
+####4. LOOCV and Loop
+
+**a) Fit a logistic regression model that predicts `Direction` using `Lag1` and `Lag2`.**
+
+```{r}
+glm.fit<-glm(Direction~Lag1+Lag2,data=Weekly,family=binomial)
+summary(glm.fit)
+```
+
+**b) Fit a logistic regression model that predicts `Direction` using `Lag1` and `Lag2` using all but the first observation.**.
+
+```{r}
+glm.fit.except_first<-glm(Direction~Lag1+Lag2,data=Weekly[-1,],family=binomial)
+summary(glm.fit.except_first)
+```
+
+**c) Use the model from b) to predict the direction of the first observation. You can do this by predicting that the first prediction will go up if P(Direction="Up"|Lag1,Lag2) > .5. Was this observation predicted correctly?.**
+
+```{r}
+predict.glm(glm.fit.except_first,type="response",newdata=Weekly[1,]) > 0.5
+```
+
+We can see from above that the prediction was up, however this is incorrect as the actual Direction is down.
+
+**d) Write a for loop from i=1 to i=n, where n is the number of observations in the data set, that performs each of the following steps:**
+
+See below.
+
+**i) Fit a logistic regression model using all but the ith observation to predict `Direction` using `Lag1` and `Lag2`.**
+
+See below.
+
+**ii) Compute the posterior probability for the ith observation in order to predict whether or not the market moves up.**
+
+See below
+
+**iii) Use the posterior probability for the ith observation in order to predict whether or not the market moves up.**
+
+See below.
+
+**iv) Determine whether or not an error was made in predicting the direction for the ith observation. If an error was made, then indicate this as a 1, and otherwise indicate it as a 0.**
+
+See below.
+
+**e) Take the average of the n numbers obtained in d)iv) in order to obtain the LOOCV estimate for the test error. Comment on the results.**
+
+```{r}
+errors=rep(0,nrow(Weekly))
+for(i in 1:nrow(Weekly)) {
+  glm.fit.except_ith<-glm(Direction~Lag1+Lag2,data=Weekly[-i,],family=binomial)
+  ith_prob<-predict.glm(glm.fit.except_ith,type="response",newdata=Weekly[i,])
+  ith_pred<-ith_prob > .5
+  ith_val<-Weekly[i,]$Direction == "Up"
+  if(ith_pred != ith_val) errors[i] = 1
+}
+mean(errors)
+```
+
+The error rate when using the LOOCV method is quite high at roughly 45%.
+
+**5. We will now perform cross-validation on a simulated data set.**
+
+**a) Generate a simulated data set as follows. In this data set, what is n and what is p? Write out the model used to generate the data in equation form.**
+
+```{r}
+set.seed(1)
+x<-rnorm(100)
+y<-x-2*x^2+rnorm(100)
+```
+
+n is 100 and p is 1.
+
+**b) Create a scatterplot of X against Y. Comment on what you find**
+
+```{r}
+plot(x,y)
+```
+
+The plot shows a curved quadratic relationship.
+
+**c) Set a random seed, and then compute the LOOCV errors that result from fitting the following four models using least squares:**
+
+**i) ii) iii) iv)**
+
+```{r}
+library(boot)
+set.seed(1)
+df<-data.frame(x,y)
+for(i in 1:4) {
+  my.fit<-glm(y~poly(x,i),data=df)
+  my.cv<-cv.glm(df,my.fit)
+  print(my.cv$delta[1])
+}
+```
+
+**d)**
+
+```{r}
+set.seed(2)
+for(i in 1:4) {
+  my.fit<-glm(y~poly(x,i),data=df)
+  my.cv<-cv.glm(df,my.fit)
+  print(my.cv$delta[1])
+}
+```
+
+My results are the same with a different seed, this is because the functions executed do not use any kind of randomness.
+
+**e)**
+
+The quadratic model achieves the lowest error rate. This is expected as when we created a plot of the data originally, we could see y represented a quadratic function.
+
+**f)**
+
+```{r}
+summary(my.fit)
+```
+
+The summary above shows that the p-values of the 3rd and 4th degree polynomials are very high, therefore they are probably not statistically significant. The p-values for the quadratic and linear are very small, indicating statistical significance.

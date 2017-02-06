@@ -1,0 +1,286 @@
+---
+title: "Coursework 1"
+author: "Harry Wright"
+date: "29 October 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 1. Basic Statistics
+
+**a) Find the following for the siblings data set:**  
+**(i) Mean**
+```{r 1ai}
+x<-c(2,3,0,5,2,1,1,0,3,3)
+mean(x)
+```
+**(ii) Median**
+```{r 1aii}
+median(x)
+```
+**(iii) Mode**
+```{r 1aiii}
+names(sort(-table(x)))[1]
+```
+**(iv) Variance**
+```{r 1aiv}
+var(x)
+```
+**(v) Standard Deviation**
+```{r 1av}
+sd(x)
+```
+**b) Find the following for the age data set:**    
+**(i) Covariance and Correlation between number of siblings and their age.**
+```{r 1bi1}
+sib<-c(2,3,0,5,2,1,1,0,3,3)
+age<-c(23,25,18,45,30,21,22,19,29,35)
+cov(sib,age)
+cor(sib,age)
+```
+
+**(ii) Is there a positive or negative or no correlation between the two?**
+
+```{r 1bii}
+plot(sib,age)
+```
+
+From the data shown above, there seems to be a positive correlation between age and no of siblings for the sampled data.
+
+**(iii) Is there causation between the two? Justify your answers.**   
+
+It is important to stress that correlation does not imply causation. There may be a reason to suspect there is a causation between number of siblings and age for a young person who's parents are more likely to be of an age to have children, however as the people sampled are all aged 19 and above I would suspect there is no reason to suggest causation.
+
+#### 2. Getting Familiar with R
+
+**a)**  
+**Number of rows:**
+```{r 2a1}
+library(MASS)
+nrow(Boston)
+```
+**Number of columns:**
+```{r 2a2}
+ncol(Boston)
+```
+**The rows each represent sets of housing values for individual suburbs in Boston**
+
+**The columns represent the following:**
+
+* crim - per capita crime rate by town.
+* zn - proportion of residential land zoned for lots over 25,000 sq.ft.
+* indus - proportion of non-retail business acres per town.
+* chas - Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+* nox - nitrogen oxides concentration (parts per 10 million).
+* rm - average number of rooms per dwelling.
+* age - proportion of owner-occupied units built prior to 1940.
+* dis - weighted mean of distances to five Boston employment centres.
+* rad - index of accessibility to radial highways.
+* tax - full-value property-tax rate per \$10,000.
+* ptratio - pupil-teacher ratio by town.
+* black - 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+* lstat - lower status of the population (percent).
+* medv - median value of owner-occupied homes in \$1000s.
+
+**b) Make some pairwise scatter plots of the predictors (columns) in this data set. Describe your findings.**
+
+```{r 2b}
+pairs(Boston[c('nox','dis','rm','lstat','medv')])
+```
+
+The above pairwise scatter plots show:
+
+* The nearer you are to an employment centre (dis), the higher the nitrogen oxide pollution (nox).
+* As the percentage of lower staus of population increases (lstat), the average number of rooms per dwelling decreases (rm).
+* As the percentage of lower staus of population increases (lstat), the median value of homes decreases (medv).
+* As the median value of homes increases (medv), the average number of rooms per dwelling increases (rm).
+* As the median value of homes increases (medv), the distance from employment centres increases (dis).
+* As the median value of homes increases (medv), the nitrogen oxide pollution decreases (nox).
+
+**c) Are there any predictors associated with per capita crime rate? If so, explain the relationship.**
+
+```{r 2c1}
+plot(Boston$age,Boston$crim)
+```
+
+The above shows that as the proportion of owner-occupied flats built before 1940 increases, the crime rate increases.
+
+```{r 2c2}
+plot(Boston$lstat,Boston$crim)
+```
+
+Above shows a positive correlation between the percentage of lower status population and crime rate.
+
+```{r 2c3}
+plot(Boston$medv,Boston$crim)
+```
+
+The above shows that as the median value of the properties increases, the crime rate decreases.
+
+**d) Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates? Pupil-teacher ratios? Comment on the range of each predictor.**
+
+```{r 2d1}
+hist(Boston$crim, breaks = 30, main = "Histogram showing crime rate per suburb of Boston")
+```
+
+Above shows that there are only a few suburbs which have crime rates, most show very low crime rates.
+
+```{r 2d2}
+hist(Boston$tax, breaks = 20)
+```
+
+Above histogram shows that most suburbs have tax rates < 450, however these are all differing in their specific rate. There is a high frequency of tax rates at the upper bounds, however these are all at the same rate.
+
+```{r 2d3}
+hist(Boston$ptratio, breaks = 20)
+```
+
+Above histogram shows that the majority of suburbs have higher pupil-teacher ratios, a huge peak being at around 20.
+
+**e) How many of the suburbs in this data set bound the Charles river?**
+
+```{r 2e}
+nrow(subset(Boston,chas==1))
+```
+
+As shown above, 35 of the suburbs in the dataset bound the Charles river.
+
+**f) What is the median pupil-teacher ratio amoung the towns in this data set?**
+
+```{r 2f}
+median(Boston$ptratio)
+```
+
+As shown above, the median ptratio is 19.05.
+
+**g) Which suburb of Boston has lowest median value of owner occupied homes? What are the values of the other predictors for that suburb, and how do those values compare to the overall ranges for those predictors? Comment on your findings.**
+
+```{r 2g1}
+subset(Boston, medv==min(Boston$medv))
+```
+
+Firstly, above shows that there are two suburbs in Boston with the lowest median value of owner occupied homes. 
+
+```{r 2g2}
+summary(Boston)
+```
+
+Compared to the above summary of the Boston data frame, we can make the following observations for the suburbs which have the lowest median value of owner occupied homes.
+
+* crim - both far above the 3rd quartile.
+    * Crime level is relatively high in both areas.
+* zn - both at the minimum.
+    * Both have no land is zoned for lots over 25,000 sq.ft.
+* indus - both at the 3rd quartile.
+    * Both have a high-proportion of non-retail businesses.
+* chas - both at the minumum.
+    * Both do not bound the Charles river.
+* nox - both just above the 3rd quartile.
+    * Both have high nitrogen oxide pollution.
+* rm - both just below the 1st quartile.
+    * Both have a low average number of rooms per dwelling.
+* age - both at the maximum.
+    * Both have the maximum proportion of owner-occupied units built prior to 1940.
+* dis - both between the minimum and 1st quartile.
+    * Both are near to employment centres.
+* rad - both at the 3rd quarile and maximum.
+    * Both have highways relatively nearby.
+* tax - both at the 3rd quartile.
+    * Both have high tax.
+* ptratio - both at the 3rd quartile.
+    * Both have a high pupil-teacher ratio. (ie. lots of pupils per class)
+* black - row 399 is at the max and 3rd quartile. row 406 is between the mean and max.
+    * Both have a high proportion of black inhabitants.
+* lstat - row 399 is almost at the max. row 406 is nearer to the 3rd quartile than the max.
+    * Both have a high percentage of "lower status" inhabitants.
+
+As expected, the suburbs with the lowest median home value are the least desirable areas to live in.
+
+**h) In this data set, how many of the suburbs average more than seven rooms per dwelling? More than eight rooms per dwelling? Comment on the suburbs that average more than eight rooms per dwelling.**
+
+```{r 2h1}
+nrow(subset(Boston,rm > 7))
+```
+
+As shown above, there are 64 suburbs with on average more than 7 rooms per dwelling.
+
+```{r 2h2}
+nrow(subset(Boston,rm > 8))
+```
+
+As shown above, there are 13 suburbs with on average more than 8 rooms per dwelling.
+
+```{r 2h3}
+colMeans(subset(Boston,rm > 8))
+```
+
+The above results show the mean for each column of the data frame, showing only suburbs which have an average of > 8 rooms per dwelling. From these results we can tell the following:
+
+* crim - crime is far lower than the mean for suburbs in Boston.
+* zn - high proportion of residential land zoned for lots over 25,000 sq.ft.
+* indus - relatively low proportion of non-retail business acres per town.
+* nox - around average level of nitrogen oxide pollution.
+* age - slightly higher than average units built prior to 1940.
+* dis - around average distance to employment centres.
+* rad - lower than average accessibility to radial highways.
+* tax - slightly lower than average property tax rate.
+* ptratio - relatively low pupil-teacher ratio (less pupils per class).
+* lstat - very low percentage of "lower status" of population.
+* medv - relatively high median value of homes.
+
+#### 3.Linear Regression
+
+**a) Using the rnorm() function, create a vector,x , containing 100 observations drawn from a N(0,1) distribution, i.e. a normal distribution with a mean 0 and variance 1. This represents a feature, X.**
+
+```{r 3a}
+x<-rnorm(100,mean=0,sd=sqrt(1))
+```
+
+**b) Using the rnorm() function, create a vector, eps, containing 100 observations drawn from a N(0,0.25) distribution i.e. a normal distribution with a mean 0 and variance 0.25.**
+
+```{r 3b}
+eps<-rnorm(100,mean=0,sd=sqrt(0.25))
+```
+
+**c) What is the length of the vector y? What are the values of B0 and B1 in this linear model?**
+
+```{r 3c}
+y=-1+(0.5*x)+eps
+```
+
+The length of vector y is 100.
+
+B0 is -1 and B1 is 0.5 in this model.
+
+**d) Create a scatterplot displaying the relationship between x and y. Comment on 
+what you observe.**
+
+```{r 3d}
+plot(x,y)
+```
+
+There is a positive correlation between x and y and the relationship looks vaguely linear.
+
+**e) Fit a least squares linear model to predict x using y. Comment on the model 
+obtained. How do B0(hat) and B1(hat) compare to B0 and B1?**
+
+```{r 3e}
+fit<-lm(y~x)
+summary(fit)
+```
+
+As can be seen above, the intercept and coefficient are close to their real values.
+
+**f) Display the least squares line on the scatterplot obtained in (d). Draw the 
+population regression line on the plot, in a different color. Use the legend()
+command to create an appropriate legend.**
+
+```{r 3f}
+plot(x,y)
+abline(reg=fit, col="red")
+abline(a=-1,b=0.5, col="green")
+legend("bottomright",c("Least Squares", "Population Regression"), col=c("red", "green"), lty=1,lwd=1)
+```

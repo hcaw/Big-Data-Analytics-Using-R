@@ -1,0 +1,215 @@
+---
+title: "Coursework_3"
+author: "Harry Wright"
+date: "28 November 2016"
+output: html_document
+---
+****
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####1. Random Forest
+
+**In the lab, we applied random forests to the `Boston` data using `mtry=6` and using `ntree=25` and `ntree=500`. Create a plot displaying the test error resulting from random forests on this data set for a more comprehensive range of values for `mtry` and `ntree`. You can model your plot after Figure 8.10. Describe the results obtained.**
+
+```{r}
+library(randomForest)
+library(MASS)
+set.seed(1)
+train=sample(nrow(Boston),nrow(Boston)/2)
+boston.train<-Boston[train,]
+boston.test<-Boston[-train,]
+boston.testmse<-rep(0,500)
+boston.mtry<-c(13,13/2,sqrt(13))
+
+for(i in 1:3) {
+  for(j in 1:500) {
+    boston.model<-randomForest(medv~.,data=boston.train,mtry=boston.mtry[i],ntree=j,importance=TRUE)
+    boston.yhat<-predict(boston.model,newdata=boston.test)
+    boston.testmse[j]<-mean((boston.yhat-boston.test$medv)^2)
+  }
+  if(i==1) {
+    plot(boston.testmse,xlab="Number of Bootstrap Data Sets",ylab="Test Error Rate",type="l",col=i,ylim=c(10,20))
+  } else {
+    lines(boston.testmse,col=i)
+  }
+}
+legend("topright",c("m=p","m=p/2","m=sqrt(p)"),col=c(1,2,3),lty=1,lwd=1)
+```
+
+From the plot it can be observed that when m=p, the test mse is higher. The mse is much reduced in the red & green lines.
+
+****
+
+####2. Regression Tree
+
+**In the lab, a classification tree was applied to the `Carseats` data set after converting `Sales` into a qualitative response variable. Now we will seek to predict `Sales` using regression trees and related approaches, treating the response as a quantitative variable.**
+
+**a) Split the data set into training set and a test set.**
+
+```{r}
+library(ISLR)
+library(tree)
+set.seed(1)
+train<-sample(1:nrow(Carseats),nrow(Carseats)/2)
+Carseats.test<-Carseats[-train,]
+Carseats.train<-Carseats[train,]
+```
+
+**b) Fit a regression tree to the training set. Plot the tree, and interpret the results. What test error rate do you obtain?**
+
+```{r}
+carseats.tree.train<-tree(Sales~.,data=Carseats.train)
+plot(carseats.tree.train)
+text(carseats.tree.train,pretty=0)
+summary(carseats.tree.train)
+yhat<-predict(carseats.tree.train,Carseats.test)
+mean((yhat-Carseats.test$Sales)^2)
+```
+
+As can be seen from the above, test Mean Squared Error is 4.148897. It can also be seen that the only independant variables used are `ShelveLoc`, `Price`, `Age`, `Advertising` and `Income`.
+
+**c) Use cross-validation in order to determine the optimal level of tree complexity. Does pruning the tree improve the test error rate?**
+
+```{r}
+cv.carseats<-cv.tree(carseats.tree.train)
+cv.carseats
+plot(cv.carseats$size,cv.carseats$dev,type = 'b',col=ifelse(cv.carseats$size==9|cv.carseats$size==10,"red","black"))
+```
+
+The output from cv.carseats shows that the lowest MSE is where the tree size is 9 or 10 (please note that the $dev vector is indexed from the highest to lowest size, so the 8th and 9th elements in the vector actually refer to size==9 and size==10). These points are shown in red on the plot. We must now prune the tree and compare the test MSE.
+
+```{r}
+prune.carseats<-prune.tree(carseats.tree.train,best=9)
+plot(prune.carseats)
+text(prune.carseats,pretty=0)
+yhat.pruned<-predict(prune.carseats,Carseats.test)
+mean((yhat.pruned-Carseats.test$Sales)^2)
+```
+
+As size 9 or 10 showed an equal MSE, I have chosen to use size=9. After pruning to optimal size, `prune.carseats` exhibits a higher Test MSE of value 4.99.
+
+**d) Use the bagging approach in order to determine the optimal level of tree complexity. What test error rate do you obtain? Use the `importance()` function to determine which variables are most important.**
+
+```{r}
+Carseats.bagging<-randomForest(Sales~.,data=Carseats.train,mtry=10,importance=TRUE)
+Carseats.yhat<-predict(Carseats.bagging,newdata=Carseats.test)
+mean((Carseats.yhat-Carseats.test$Sales)^2)
+importance(Carseats.bagging)
+varImpPlot(Carseats.bagging)
+```
+
+From above we can see that the test error rate when using bagging is 2.604369.
+From the importance function and corresponding variable importance plot, we can see that `Price` is by far the most important variable, followed by `ShelveLoc` then `Age` etc.
+
+**e) Use random forests to analyse this data. What test error rate do you obtain? Use the importance() function to determine which variables are most important. Describe the effect of m, the number of variables considered at each split, on the error rate obtained.**
+
+```{r}
+Carseats.rf<-randomForest(Sales~.,data=Carseats.train,mtry=10/3,importance=TRUE)
+Carseats.yhat<-predict(Carseats.rf,newdata=Carseats.test)
+mean((Carseats.yhat-Carseats.test$Sales)^2)
+importance(Carseats.bagging)
+varImpPlot(Carseats.bagging)
+```
+
+From the `importance` function and variable importance plot we can see that `Price` and `ShelveLoc` are by far the most important variables.
+Changing m in this case has increased the MSE to 3.296078.
+
+****
+
+####3. Classification Tree
+
+**This problem involves the OJ data set which is part of the ISLR package.**
+
+**a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations.**
+
+```{r}
+set.seed(1)
+train<-sample(nrow(OJ),800)
+OJ.test<-OJ[-train,]
+OJ.train<-OJ[train,]
+```
+
+**b) Fit a tree to the training data, with `Purchase` as the response and the other variables as predictors. Use the `summary()` function to produce summary statistics about the tree, and describe the results obtained. What is the training error rate? How many terminal nodes does the tree have?**
+
+```{r}
+OJ.train.tree<-tree(Purchase~.,data=OJ.train)
+summary(OJ.train.tree)
+```
+
+From the results of `summary()` we can see that only four independent variables are used. The number of terminal nodes is 8. We can also see from the summary that the training error rate is 16.5%.
+
+**c) Type in the name of the tree object in order to get a detailed text output. Pick one of the terminal nodes, and interpret the information displayed.**
+
+```{r}
+OJ.train.tree
+```
+
+If we choose the terminal node at the bottom labelled 7, we can see that it is chosen if LoyalCH is > 0.764572. There are 278 observations in this branch and the deviation is 86.14. The prediction for this branch is CH. 96.4% of the observations in this branch are CH and 3.6% are MM.
+
+**d) Create a plot of the tree and interpret the results.**
+
+```{r}
+plot(OJ.train.tree)
+text(OJ.train.tree,pretty=0)
+```
+
+From the plot we can see that the most important factor for which juice brand will be chosen is LoyalCH. Customers who are loyal to the CH brand are more likely to choose CH.
+
+**e) Predict the response on the test data, and produce a confusion matrix comparing the test labels to the predicted test labels. What is the test error rate?**
+
+```{r}
+OJ.test.pred<-predict(OJ.train.tree,OJ.test,type="class")
+table(OJ.test.pred,OJ.test$Purchase)
+(12+49)/270
+```
+
+The Test Error Rate is 22.6%.
+
+**f) Apply the `cv.tree()` function to the training set in order to determine the optimal tree size.**
+
+```{r}
+OJ.cv.train.tree<-cv.tree(OJ.train.tree,FUN = prune.misclass)
+OJ.cv.train.tree
+```
+
+**g) Product a plot with tree size on the x-axis and cross-validated classification error rate on the y-axis.**
+
+```{r}
+plot(OJ.cv.train.tree$size,OJ.cv.train.tree$dev,type = 'b')
+```
+
+**h) Which tree size corresponds to the lowest cross-validated classification error rate?**
+
+As can be seen from the results, tree sizes 2, 5 and 8 the lowest error rate (they are all equal).
+
+**i) Produce a pruned tree corresponding to the optimal size obtained using cross-validation. If cross-validation does not lead to selection of a pruned tree, then create a pruned tree with five terminal nodes.**
+
+```{r}
+OJ.train.tree.pruned<-prune.misclass(OJ.train.tree,best=2)
+plot(OJ.train.tree.pruned)
+text(OJ.train.tree.pruned,pretty=0)
+```
+
+**j) Compare the training error rates between the pruned and unpruned trees. Which is higher?**
+
+```{r}
+summary(OJ.train.tree)
+summary(OJ.train.tree.pruned)
+```
+
+The training error rate for the pruned tree is a little higher at 18.25%.
+
+**k) Compare the test error rates between the pruned and unpruned trees. Which is higher?**
+
+```{r}
+OJ.test.pruned.pred<-predict(OJ.train.tree.pruned,OJ.test,type="class")
+table(OJ.test.pruned.pred,OJ.test$Purchase)
+(40+30)/270
+```
+
+Recall that the test error rate for the unpruned tree `OJ.train.tree` is 22.6% (from question 3e). The above shows the test error rate for the pruned tree is 26%, which is higher than for the unpruned tree.
+
+****

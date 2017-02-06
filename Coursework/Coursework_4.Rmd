@@ -1,0 +1,356 @@
+---
+title: "Coursework_4"
+author: "Harry Wright"
+date: "7 Jan 2016"
+output: html_document
+---
+****
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####1. SVM
+
+**This problem involved the `OJ` data set which is part of the `ISLR` package.**
+
+**a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations.**
+
+```{r}
+library(ISLR)
+set.seed(1)
+train<-sample(nrow(OJ),800)
+oj.train<-OJ[train,]
+oj.test<-OJ[-train,]
+```
+
+**b) Fit a support vector classifier to the training data using `cost = 0.01`, with `Purchase` as the response and the other variables as predictors. Use the `summary()` function to produce summary statistics, and describe the results obtained.**
+
+```{r}
+library(e1071)
+oj.svc<-svm(Purchase~.,data=oj.train,kernel="linear",cost=0.01)
+summary(oj.svc)
+```
+
+Results show there are 432 support vectors, 215 of which belong to CH, 217 to MM.
+
+**c) What are the training and test error rates?**
+
+```{r}
+oj.svc.pred.train<-predict(oj.svc,oj.train)
+table(oj.svc.pred.train,oj.train$Purchase)
+(78+55)/800
+```
+
+Training error rate is 16.6%.
+
+```{r}
+oj.svc.pred.test<-predict(oj.svc,oj.test)
+table(oj.svc.pred.test,oj.test$Purchase)
+(18+31)/270
+```
+
+Test error rate is 18.1%.
+
+**d) Use the `tune()` function to select an optimal `cost`. Consider values in the range of 0.01 to 10.**
+
+```{r}
+set.seed(1)
+oj.tune<-tune(svm,Purchase~.,data=oj.train,kernel="linear",ranges=list(cost=c(0.01,0.05,0.1,0.5,1,5,10)))
+summary(oj.tune)
+```
+
+From the results, optimal cost is 0.05, as it has the lowest error rate at 17.1%
+
+**e) Compute the training and test error rates using this new value for `cost`.**
+
+```{r}
+oj.svc<-svm(Purchase~.,data=oj.train,kernel="linear",cost=0.05)
+oj.svc.pred.train<-predict(oj.svc,oj.train)
+table(oj.svc.pred.train,oj.train$Purchase)
+(71+58)/800
+```
+
+Training error rate is 16.1%.
+
+```{r}
+oj.svc.pred.test<-predict(oj.svc,oj.test)
+table(oj.svc.pred.test,oj.test$Purchase)
+(20+31)/270
+```
+
+Test error rate is 18.9%.
+
+**f) Repeat parts b) through e) using a support vector machine with radial kernel. Use the default value for `gamma`.**
+
+```{r}
+oj.svm<-svm(Purchase~.,data=oj.train,kernel="radial",cost=0.01)
+summary(oj.svm)
+```
+
+Results show there are 617 support vectors, 306 of which belong to CH, 311 to MM.
+
+```{r}
+oj.svm.pred.train<-predict(oj.svm,oj.train)
+table(oj.svm.pred.train,oj.train$Purchase)
+306/800
+```
+
+Training error rate is 38.3%.
+
+```{r}
+oj.svm.pred.test<-predict(oj.svm,oj.test)
+table(oj.svm.pred.test,oj.test$Purchase)
+111/270
+```
+
+Test error rate is 41.1%.
+
+```{r}
+set.seed(1)
+oj.tune<-tune(svm,Purchase~.,data=oj.train,kernel="radial",ranges=list(cost=c(0.01,0.05,0.1,0.5,1,5,10)))
+summary(oj.tune)
+```
+
+From the results, optimal cost is 0.5, as it has the lowest error rate at 17%.
+
+```{r}
+oj.svm<-svm(Purchase~.,data=oj.train,kernel="radial",cost=0.5)
+oj.svm.pred.train<-predict(oj.svm,oj.train)
+table(oj.svm.pred.train,oj.train$Purchase)
+(77+41)/800
+```
+
+Training error rate is 14.8%.
+
+```{r}
+oj.svm.pred.test<-predict(oj.svm,oj.test)
+table(oj.svm.pred.test,oj.test$Purchase)
+(29+16)/270
+```
+
+Test error rate is 16.7%.
+
+**g) Repeat parts b) through e) using a support vector machine with a polynomial kernel. Set `degree = 2`.**
+
+```{r}
+oj.svm<-svm(Purchase~.,data=oj.train,degree=2,kernel="polynomial",cost=0.01)
+summary(oj.svm)
+```
+
+Results show there are 620 support vectors, 306 of which belong to CH, 314 to MM.
+
+```{r}
+oj.svm.pred.train<-predict(oj.svm,oj.train)
+table(oj.svm.pred.train,oj.train$Purchase)
+306/800
+```
+
+Training error rate is 38.3%.
+
+```{r}
+oj.svm.pred.test<-predict(oj.svm,oj.test)
+table(oj.svm.pred.test,oj.test$Purchase)
+111/270
+```
+
+Test error rate is 41.1%.
+
+```{r}
+set.seed(1)
+oj.tune<-tune(svm,Purchase~.,data=oj.train,kernel="polynomial",degree=2,ranges=list(cost=c(0.01,0.05,0.1,0.5,1,5,10)))
+summary(oj.tune)
+```
+
+From the results, optimal cost is 5, as it has the lowest error rate at 17.25%.
+
+```{r}
+oj.svm<-svm(Purchase~.,data=oj.train,degree=2,kernel="polynomial",cost=5)
+oj.svm.pred.train<-predict(oj.svm,oj.train)
+table(oj.svm.pred.train,oj.train$Purchase)
+(40+79)/800
+```
+
+Training error rate is 14.9%.
+
+```{r}
+oj.svm.pred.test<-predict(oj.svm,oj.test)
+table(oj.svm.pred.test,oj.test$Purchase)
+(17+32)/270
+```
+
+Test error rate is 18.1%.
+
+**h) Overall, which approach seems to give the best results on this data?**
+
+* SVC
+    * Cost = 0.01
+        * Train = 16.6%
+        * Test  = 18.1%
+    * Cost = 0.05
+        * Train = 16.1%
+        * Test  = 18.9%
+* SVM Radial
+    * Cost = 0.01
+        * Train = 38.3%
+        * Test  = 41.1%
+    * Cost = 0.5
+        * Train = 14.8%
+        * Test  = 16.7%
+* SVM Polynomial (degree = 2)
+    * Cost = 0.01
+        * Train = 38.3%
+        * Test  = 41.1%
+    * Cost = 5
+        * Train = 14.9%
+        * Test  = 18.1%
+
+As shown in the overview of results above, the SVM with radial kernel (using cost = 0.5) gives the best results as it achieves the lowest error rates.
+
+****
+
+####2. SVM and Logistic Regression
+
+**We have seen that we can fit an SVM with a non-linear kernel in order to perform classification using a non-linear decision boundary. We will now see that we can also obtain a non-linear decision boundary by performing logistic regression using non-linear transformations of the features.**
+
+**a) Generate a data set with `n=500` and `p=2`, such that the observations belong to two classes with a quadratic decision boundary between them.**
+
+```{r}
+set.seed(1)
+X1<-runif(500)-0.5
+X2<-runif(500)-0.5
+Y<-1*(X1^2-X2^2>0)
+dataframe<-data.frame(X1=X1,X2=X2,Y=Y)
+```
+
+**b) Plot the observations, coloured according to their class labels. Your plot should display `X1` on the x-axis and `X2` on the y-axis.**
+
+```{r}
+plot(X1,X2,xlab="X1",ylab="X2",col=Y+1)
+```
+
+**c) Fit a logistic regression model to the data, using `X1` and `X2` as the predictors.**
+
+```{r}
+logres<-glm(Y~.,data=dataframe,family=binomial)
+summary(logres)
+```
+
+**d) Apply this model to the *training data* in order to obtain a predicted class label for each training observation. Plot the observations, coloured according to the *predicted* class labels. The decision boundary should be linear.**
+
+```{r}
+probability<-predict(logres,type="response")
+prediction<-rep(0,nrow(dataframe))
+prediction[probability>.5]<-1
+plot(X1,X2,xlab="X1",ylab="X2",col=prediction+1)
+```
+
+**e) Now fit a logistic regression model to the data using non-linear functions of `X1` and `X2` as predictors.**
+
+```{r}
+logres<-glm(Y~poly(X1,2)+poly(X2,2),data=dataframe,family=binomial)
+summary(logres)
+```
+
+**f) Apply this model to the *training data* in order to obtain a predicted class label for each training observation. Plot the observations, colored according to the *predicted* class labels. The decision boundary should obvioulsy be non-linear. If it is not, then repeat a)-e) until you come up with an example in which the predicted class labels are obviously non-linear.**
+
+```{r}
+probability<-predict(logres,type="response")
+prediction<-rep(0,nrow(dataframe))
+prediction[probability>.5]<-1
+plot(X1,X2,xlab="X1",ylab="X2",col=prediction+1)
+```
+
+**g) Fit a support vector classifier to the data with `X1` and `X2` as predictors. Obtain a class prediction for each training observation. Plot the observations, coloured according to the *predicted class labels*.**
+
+```{r}
+svc<-svm(as.factor(Y)~.,data=dataframe,kernel="linear")
+prediction<-predict(svc,dataframe)
+plot(X1,X2,xlab="X1",ylab="X2",col=as.integer(prediction)+1)
+```
+
+**h) Fit an SVM using a non-linear kernel to the data with `X1` and `X2` as predictors. Obtain a class prediction for each training observation. Plot the observations, coloured according to the *predicted class labels*.**
+
+```{r}
+my.svm<-svm(as.factor(Y)~.,data=dataframe,kernel="radial")
+prediction<-predict(my.svm,dataframe)
+plot(X1,X2,xlab="X1",ylab="X2",col=as.integer(prediction)+1)
+```
+
+**i) Comment on your results.**
+
+It is clear that using a linear model to predict the correct result is not an accurate method. A great improvement is seen when either modelling with an SVM with radial kernel or logistic regression using non-linear predictors.
+
+****
+
+####3. Hierarchical Clustering
+
+**Consider the `USArrests data. We will now perform heirarchical clustering on the states.**
+
+**a) Using heirarchical clustering with complete linkage and Euclidean distance, cluster the states**
+
+```{r}
+usa.complete<- hclust(dist(USArrests),method="complete")
+plot(usa.complete)
+```
+
+**b) Cut the dendrogram at a height that results in three distinct clusters. Which states belong to which clusters?**
+
+```{r}
+cutree(usa.complete,k=3)
+```
+
+**c) Hierachically cluster the states using complete linkage and Euclidean distance, after scaling the variables to have standard deviation one.**
+
+```{r}
+USArrests.scaled<-scale(USArrests)
+usa.complete.scaled<- hclust(dist(USArrests.scaled),method="complete")
+plot(usa.complete.scaled)
+```
+
+**d) What effect does scaling the variables have on the hierarchical clustering obtained? In your opinion, should the variables be scaled before the inter-observation dissimilarities are computed? Provide a justification for your answer.**
+
+Scaling the variables has the effect of reducing the dissimilarity between variables, which we can see by the drastically reduced range of `Height`.
+
+The variables should be scaled before the inter-observation dissimilarities are computed as the variables are measured on different scales. Scaling before dissimilarties are computed will give each variable equal importance in the hierarchical clustering performed.
+
+****
+
+####4. PCA and K-Means Clustering
+
+**In this problem, you will generate simulated data, and then perform PCA and K-Means clustering on the data.**
+
+**a) Generate a simulated data set with 20 observations in each of three classes (i.e. 60 observations total), and 50 variables.**
+
+```{r}
+set.seed(1)
+nvar<-50
+sim<-matrix(rnorm(60*nvar),ncol=nvar)
+for(i in 1:nvar) {
+  sim[1:20,i]<-sim[1:20,i]+4
+}
+for(i in 1:nvar) {
+  sim[41:60,i]<-sim[41:60,i]-4
+}
+sim.frame<-data.frame(sim)
+```
+
+
+**b) Perform PCA on the 60 observations and plot the first two principal components' eigenvector. Use a different colour to indicate the observations in each of the three classes. If the three classes appear separated in this plot, then continue on to part (c). If not, the return to part (a) and modify the simulation so that there is greater separation between the three classes. Do not continue to part (c) until the three classes show at least some separation in the first two principal component eigenvectors.**
+
+```{r}
+sim.pca<-prcomp(sim.frame)
+colours<-c(rep(1,20),rep(2,20),rep(3,20))
+plot(sim.pca$x[,1:2],col=colours)
+```
+
+**c) Perform K-means clustering of the observations with K=3. How well do the clusters that you obtained in K-means clustering compare to the true class labels?**
+
+```{r}
+kmeans.result<-kmeans(sim.frame,centers=3,nstart=20)
+table(kmeans.result$cluster,colours)
+```
+
+It looks like the clusters were detected.
+
+****
